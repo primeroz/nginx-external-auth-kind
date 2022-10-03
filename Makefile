@@ -56,6 +56,12 @@ delete-kind:
 display-kind:
 	kubectl --context ${KCTX} cluster-info --context kind-${CLUSTER_NAME}
 
+install-ingress-nginx:
+	@helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+	@helm repo update
+	@kubectl --context ${KCTX} create namespace ingress
+	@helm --kube-context ${KCTX} install --namespace ingress local ingress-nginx/ingress-nginx --values values-ingress-nginx.yaml --version 4.3.0 #--wait 
+
 #all: test kind-integration
 
 
