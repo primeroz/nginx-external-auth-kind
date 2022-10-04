@@ -7,7 +7,47 @@ testing Nginx with external-auth using https://github.com/primeroz/simple-ingres
 * helm 3
 * kubecfg 0.27.0 +
 
-#
+# Requests flow
+
+```
+                  ┌──────────────┐
+                  │              │
+                  │   curl   │
+                  │              │
+                  └───────┬──────┘
+                          │
+                          │Host: podinfo.local
+                          │Bearer Token 12345
+                          │
+                    ┌─────▼────┐
+                    │          │
+                    │          │
+                    │  NGINX   │
+                    │          │
+                    └┬──▲─┬────┘
+                     │  │ │
+                     │  │ │
+                     │  │ │1
+                     │  │ │           ┌──────────────────┐
+                     │  │ └───────────►                  │
+                     │  │2            │ external-auth    │
+                     │  └─────────────┤                  │
+                     │                │ 12345 : client1  │
+                     │                │ 45678 : client2  │
+                     │3               └──────────────────┘
+                     │
+                     │X-Scope-Orgid: client1|client2
+                ┌────▼─────────────┐
+                │                  │
+                │  PodInfo         │
+                │                  │
+                │                  │
+                │                  │
+                │                  │
+                └──────────────────┘
+```
+
+# How to Run
 
 * `make kind-create`
 * `make deploy-all`
