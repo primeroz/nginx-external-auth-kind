@@ -1,6 +1,10 @@
 {
   _config+:: {
     namespace: 'opa-ext-auth',
+    //image: 'openpolicyagent/opa:0.44.0-envoy',
+    image: 'openpolicyagent/opa:0.44.0',
+    logLevel: 'info',
+    md5Config: true,
     configuration: {
       plugins: {
         // envoy_ext_authz_grpc: {
@@ -13,11 +17,11 @@
       },
     },
     policy: |||
-      package envoy.authz
+      package system
 
-      import input.attributes.request.http as http_request
-
-      default allow = false
+      main = msg {
+        msg := sprintf("hello, %v", [input.user])
+      }
     |||,
   },
 
@@ -51,6 +55,9 @@
           labels: {
             app: 'opa',
           },
+          annotations: {
+            [if $._config.md5Config then 'config/checksum']: std.md5(std.toString($._config)),
+          },
         },
         spec: {
           nodeSelector: {
@@ -59,8 +66,8 @@
           },
           containers: [
             {
-              name: 'opa-envoy',
-              image: 'openpolicyagent/opa:0.44.0-envoy',
+              name: 'opa',
+              image: $._config.image,
               securityContext: {
                 runAsUser: 1111,
               },
@@ -82,6 +89,7 @@
                 '--config-file=/config/config.yaml',
                 '--addr=0.0.0.0:8181',
                 '--diagnostic-addr=0.0.0.0:8282',
+                '--log-level=%s' % $._config.logLevel,
                 '--ignore=.*',
                 '/policy/policy.rego',
               ],
