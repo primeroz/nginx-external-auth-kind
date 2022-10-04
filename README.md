@@ -12,7 +12,7 @@ testing Nginx with external-auth using https://github.com/primeroz/simple-ingres
 ```
                   ┌──────────────┐
                   │              │
-                  │   curl   │
+                  │   curl       │
                   │              │
                   └───────┬──────┘
                           │
