@@ -5,7 +5,9 @@ ingress:
   enabled: true
   className: "nginx"
   annotations:
-    'nginx.ingress.kubernetes.io/auth-url': "http://opa.opa-ext-auth.svc.cluster.local.:8181/"
+    'nginx.ingress.kubernetes.io/auth-url': "http://external-auth.external-auth.svc.cluster.local.:8080/"
     'nginx.ingress.kubernetes.io/auth-keepalive': "3"
-    'nginx.ingress.kubernetes.io/auth-method': 'POST'
-    #'nginx.ingress.kubernetes.io/PATH ???? 
+    'nginx.ingress.kubernetes.io/auth-response-headers': "X-Scope-OrgId"
+    ## 'nginx.ingress.kubernetes.io/auth-cache-key': "XXX"
+    ## 'nginx.ingress.kubernetes.io/auth-cache-duration': "XXX"
+    ## 'nginx.ingress.kubernetes.io/auth-always-set-cookie': "XXX"
