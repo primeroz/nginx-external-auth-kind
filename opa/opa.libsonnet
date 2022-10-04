@@ -7,9 +7,9 @@
         //   addr: ':9191',
         //   path: 'envoy/authz/allow',
         // },
-        decision_logs: {
-          console: true,
-        },
+      },
+      decision_logs: {
+        console: true,
       },
     },
     policy: |||
