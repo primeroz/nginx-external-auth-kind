@@ -1,0 +1,23 @@
+commonLabels: {}
+
+controller:
+  tolerations: []
+  #  - key: "key"
+  #    operator: "Equal|Exists"
+  #    value: "value"
+  #    effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
+
+  # -- Affinity and anti-affinity rules for server scheduling to nodes
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  ##
+
+  nodeSelector:
+    kubernetes.io/os: linux
+
+  service:
+    enabled: true
+
+    type: NodePort
+    nodePorts:
+      http: 32080
+      https: 32443

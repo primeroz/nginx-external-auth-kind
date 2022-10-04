@@ -1,68 +1,38 @@
-export CLUSTER_NAME=nginxopa
-export KCTX=kind-nginxopa
+# https://raw.githubusercontent.com/FikaWorks/deploy-kubernetes-addons-makefile-example/master/Makefile
+include common.mk
+include env.$(ENVIRONMENT).mk
 
-export KIND_CONFIG_FILE_NAME=kind.config.yaml
+.DEFAULT_GOAL := help
 
-## Create file definition for the kind cluster
-define get_kind_config_file
-# Remove config file
-rm -f ${KIND_CONFIG_FILE_NAME}
-# Define config file
-cat << EOF >> ${KIND_CONFIG_FILE_NAME}
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-networking:
-  apiServerAddress: "0.0.0.0"
-  apiServerPort: 6443
-nodes:
-# the control plane node config
-- role: control-plane
-  kubeadmConfigPatches:
-  - |
-    kind: InitConfiguration
-    nodeRegistration:
-      kubeletExtraArgs:
-        node-labels: "ingress-ready=true"
-        # authorization-mode: "AlwaysAllow"
-  extraPortMappings:
-  - containerPort: 80
-    hostPort: 80
-    protocol: TCP
-  - containerPort: 443
-    hostPort: 443
-    protocol: TCP
-# the workers
-- role: worker
-EOF
-endef
-export KIND_CLUSTER_FILE_CREATOR = $(value get_kind_config_file)
+.PHONY: all
+all: switch-kubectl-context deploy-all
 
-WAIT_FOR_KIND_READY = '{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'
-WAIT_FOR_OPA_READY = '{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'
+.PHONY: switch-kubectl-context
+switch-kubectl-context: ## Set kubectl context based on the KUBE_CONTEXT environment variable, by default it is defined in the `env.<ENVIRONMENT>.mk` file
+	kubectl config use-context $(KUBE_CONTEXT)
 
-.PHONY: all create-kind-config-file create-kind delete-kind display-kind
+.PHONY: deploy-all
+deploy-all: $(foreach app,$(APPS),deploy-$(app)) ## Deploy all application to a given environment
 
-create-kind-config-file:; @ eval "$$KIND_CLUSTER_FILE_CREATOR"
+.PHONY: kind-create kind-delete kind-display
+kind-create: ## Create Kind Cluster
+	$(MAKE) -C kind/ -e ENVIRONMENT=$(ENVIRONMENT) deploy
+kind-delete: ## delete Kind Cluster
+	$(MAKE) -C kind/ -e ENVIRONMENT=$(ENVIRONMENT) delete
+kind-display: ## display Kind Cluster
+	$(MAKE) -C kind/ -e ENVIRONMENT=$(ENVIRONMENT) display
 
-create-kind: create-kind-config-file
-	kind create cluster --name ${CLUSTER_NAME} --config=${KIND_CONFIG_FILE_NAME} --image=kindest/node:v1.23.12 --wait=120s
-	# Remove config file
-	@rm -f ${KIND_CONFIG_FILE_NAME}
+deploy-%: switch-kubectl-context ## Deploy a single application to a given environment
+	$(MAKE) -C $* -e ENVIRONMENT=$(ENVIRONMENT) deploy
 
-delete-kind:
-	@kind delete cluster --name ${CLUSTER_NAME}
-	@docker system prune -f
+.PHONY: deploy-%
+deploy-%: switch-kubectl-context ## Deploy a single application to a given environment
+	$(MAKE) -C $* -e ENVIRONMENT=$(ENVIRONMENT) deploy
 
-display-kind:
-	kubectl --context ${KCTX} cluster-info --context kind-${CLUSTER_NAME}
+.PHONY: display-%
+display-%: switch-kubectl-context ## display a single application
+	$(MAKE) -C $* -e ENVIRONMENT=$(ENVIRONMENT) display
 
-install-ingress-nginx:
-	@helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-	@helm repo update
-	@kubectl --context ${KCTX} create namespace ingress
-	@helm --kube-context ${KCTX} install --namespace ingress local ingress-nginx/ingress-nginx --values values-ingress-nginx.yaml --version 4.3.0 #--wait 
-
-#all: test kind-integration
-
-
-
+.PHONY: help
+help: ## Display this help. Thanks to https://suva.sh/posts/well-documented-makefiles/
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
